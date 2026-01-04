@@ -1,0 +1,125 @@
+/* =====================================
+   Projectdocs – Lost in Tra(i)nslation
+   Verbeterde Stylesheet
+   ===================================== */
+
+/* Reset */
+html, body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Algemene opmaak */
+body {
+  font-family: 'Roboto', sans-serif;
+  line-height: 1.7;
+  color: #1f1f1f;
+  background: linear-gradient(180deg, #f4f6f8 0%, #eef1f4 100%);
+}
+
+/* Container */
+.container {
+  max-width: 900px;
+  margin: 3.5rem auto;
+  padding: 2.5rem 2rem;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+  animation: fadeIn 0.7s ease forwards;
+}
+
+/* Navigatie */
+.nav {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin: 0 0 2rem 0;
+  padding: 0;
+}
+
+.nav a {
+  display: block;
+  padding: 0.55rem 1rem;
+  background: #e9eef5;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  color: #234b7c;
+  transition: 0.25s ease;
+}
+
+.nav a:hover,
+.nav a:focus {
+  background: #4c89ff;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+/* Titels */
+h1, h2, h3 {
+  color: #0e2a47;
+  font-weight: 600;
+  margin-top: 0;
+}
+
+h1 {
+  font-size: 2.2rem;
+  margin-bottom: 1.2rem;
+  letter-spacing: -0.5px;
+}
+
+h2 {
+  font-size: 1.45rem;
+  margin-top: 2rem;
+  margin-bottom: 0.7rem;
+  padding-left: 12px;
+  border-left: 5px solid #4c89ff;
+}
+
+h3 {
+  font-size: 1.2rem;
+  margin-top: 1.5rem;
+}
+
+/* Paragrafen */
+p {
+  margin-bottom: 1rem;
+  max-width: 75ch;
+}
+
+/* Lijsten */
+ul {
+  margin-top: 0.5rem;
+  margin-bottom: 1.2rem;
+  padding-left: 1.5rem;
+}
+
+ul li {
+  margin: 0.3rem 0;
+}
+
+/* Links in tekst */
+a {
+  color: #2b6edc;
+  font-weight: 500;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Codeblok */
+code {
+  background-color: #f1f3f5;
+  padding: 0.25rem 0.45rem;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+/* Animaties */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

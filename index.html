@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="nl" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Projectdocumentatie Lost in Tra(i)nslation">
+  <title>Projectdocumentatie – Lost in Tra(i)nslation</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Roboto+Slab:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Tailwind Configuratie -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Roboto Slab', 'serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f5f3ff',
+              100: '#ede9fe',
+              400: '#a78bfa',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              700: '#6d28d9',
+              900: '#4c1d95',
+            },
+            dark: {
+              bg: '#0f172a',
+              card: '#1e293b',
+            }
+          },
+          animation: {
+            'blob': 'blob 10s infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'fade-in-up': 'fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          },
+          keyframes: {
+            blob: {
+              '0%': { transform: 'translate(0px, 0px) scale(1)' },
+              '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+              '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+              '100%': { transform: 'translate(0px, 0px) scale(1)' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-20px)' },
+            },
+            fadeInUp: {
+              '0%': { opacity: 0, transform: 'translateY(40px)' },
+              '100%': { opacity: 1, transform: 'translateY(0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    /* Custom logic for spotlight via CSS Variables */
+    body {
+      --mouse-x: 50%;
+      --mouse-y: 50%;
+      --scroll-hue: 0deg;
+    }
+    
+    .spotlight-bg {
+      background: 
+        radial-gradient(
+          800px circle at var(--mouse-x) var(--mouse-y),
+          rgba(124, 58, 237, 0.15),
+          transparent 40%
+        );
+    }
+
+    /* Dynamic Background Color Shift on Scroll */
+    .dynamic-orbs {
+      filter: hue-rotate(var(--scroll-hue));
+      transition: filter 0.1s linear;
+    }
+    
+    /* 3D Tilt Card Setup */
+    .tilt-card {
+      transform-style: preserve-3d;
+      transition: transform 0.1s ease-out;
+    }
+    
+    .tilt-inner {
+      transform: translateZ(20px);
+    }
+
+    /* Hide scrollbar for nav but keep functionality */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Confetti Canvas */
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-dark-bg dark:text-slate-100 transition-colors duration-500 overflow-x-hidden relative selection:bg-violet-500 selection:text-white">
+
+  <!-- Confetti Canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Dynamic Spotlight Background Overlay -->
+  <div id="spotlight" class="fixed inset-0 pointer-events-none z-[-1] transition-opacity duration-500 opacity-0 md:opacity-100 spotlight-bg"></div>
+
+  <!-- Ambient Background Effects (Glowing Orbs) - Dynamic Color Shift applied here via JS -->
+  <div class="fixed inset-0 pointer-events-none z-[-2] overflow-hidden dynamic-orbs">
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob dark:bg-purple-900 dark:opacity-20"></div>
+    <div class="absolute top-0 right-1/4 w-96 h-96 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000 dark:bg-indigo-900 dark:opacity-20"></div>
+    <div class="absolute -bottom-32 left-1/3 w-96 h-96 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000 dark:bg-fuchsia-900 dark:opacity-20"></div>
+  </div>
+
+  <!-- Scroll Progress Bar -->
+  <div class="fixed top-0 left-0 h-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 z-[100] transition-all duration-100 ease-out shadow-[0_0_10px_rgba(124,58,237,0.5)]" id="progressBar" style="width: 0%"></div>
+
+  <!-- Navigation / Header -->
+  <header class="fixed top-0 w-full z-50 transition-all duration-300 backdrop-blur-md bg-white/70 dark:bg-dark-bg/70 border-b border-slate-200 dark:border-white/10" id="main-header">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Author Badge -->
+      <div class="flex items-center gap-3 px-4 py-2 rounded-full bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-sm hover:shadow-md transition-all duration-300 group cursor-default">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white group-hover:scale-110 transition-transform shadow-lg shadow-violet-500/20">
+          <span class="font-bold text-sm">Av</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-xs font-bold text-slate-600 dark:text-slate-200 leading-tight">Arwen Van De Water</span>
+          <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono tracking-wider">1GDM1</span>
+        </div>
+      </div>
+
+      <!-- Theme Toggle -->
+      <button id="themeToggle" class="w-12 h-12 rounded-full flex items-center justify-center bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-violet-500 text-slate-600 dark:text-yellow-400 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-tr from-violet-500/20 to-transparent opacity-0 hover:opacity-100 transition-opacity"></div>
+        <svg id="sunIcon" class="w-6 h-6 hidden relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12 a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+        <svg id="moonIcon" class="w-6 h-6 block relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <div class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    
+    <!-- Hero Section -->
+    <div class="text-center max-w-4xl mx-auto mb-16 relative perspective-1000">
+      <div class="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-violet-500/20 rounded-full blur-[80px] -z-10 animate-pulse-slow"></div>
+      
+      <h1 class="text-5xl md:text-7xl lg:text-8xl font-serif font-bold mb-6 tracking-tight text-slate-900 dark:text-white scramble-text cursor-default" data-value="Lost in Tra(i)nslation">
+        Lost in Tra(i)nslation
+      </h1>
+      
+      <p class="text-lg md:text-xl text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto border-l-4 border-violet-500 pl-6 text-left md:text-center md:border-l-0 md:border-b-4 md:pb-4 md:pl-0">
+        Een documentatie van mijn creatieve reis. Van low-fi schetsen tot een volledig functionele applicatie: ontdek hoe ik meertaligheid, gebruiksvriendelijkheid en design heb verenigd in dit project.
+      </p>
+
+      <!-- Week Navigation (Static, Wrapping, No Scroll) -->
+      <nav class="mt-12 w-full">
+        <div class="flex flex-wrap justify-center gap-1 md:gap-2">
+          <a href="index.html" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-violet-600 text-white shadow-lg shadow-violet-500/30 transition-all hover:scale-105 active:scale-95">Home</a>
+          
+          <a href="week1.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 transition-all">Wk 1</a>
+          <a href="week2.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 transition-all">Wk 2</a>
+          <a href="week3.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 transition-all">Wk 3</a>
+          <a href="week4.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 transition-all">Wk 4</a>
+          <a href="week5.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 transition-all">Wk 5</a>
+          <a href="week6.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 transition-all">Wk 6</a>
+          <a href="week7.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 transition-all">Wk 7</a>
+          <a href="week8.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 transition-all">Wk 8</a>
+          <a href="week9.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 transition-all">Wk 9</a>
+          <a href="week10.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 transition-all">Wk 10</a>
+          <a href="week11.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 transition-all">Wk 11</a>
+          <a href="week12.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-violet-600 dark:hover:text-violet-400 hover:border-violet-300 transition-all">Wk 12</a>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Section Title -->
+    <div class="mb-16 flex items-center gap-4 opacity-0 animate-fade-in-up">
+      <span class="flex-1 h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent dark:via-slate-700"></span>
+      <h2 class="text-3xl md:text-4xl font-serif font-bold text-slate-800 dark:text-white whitespace-nowrap">Projectoverzicht</h2>
+      <span class="flex-1 h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent dark:via-slate-700"></span>
+    </div>
+
+    <!-- Timeline Container -->
+    <div class="relative max-w-5xl mx-auto pl-0 md:pl-0">
+      <!-- The Central Line -->
+      <div class="absolute left-0 md:left-1/2 top-4 bottom-4 w-0.5 bg-gradient-to-b from-violet-300 via-violet-500 to-transparent dark:from-violet-900 dark:via-violet-600 -ml-px"></div>
+
+      <!-- Week 1 -->
+      <div class="group relative mb-12 md:flex md:items-center md:justify-between reveal-on-scroll opacity-0 translate-y-8 transition-all duration-700">
+        <div class="absolute left-[-5px] md:left-1/2 w-3 h-3 bg-white dark:bg-slate-900 rounded-full border-2 border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)] z-10 -ml-1.5"></div>
+        <div class="md:w-5/12 md:pl-12 w-full pl-6 md:pr-0">
+          <a href="week1.html" class="tilt-card block p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(124,58,237,0.3)] transition-all duration-300 hover:border-violet-400 dark:hover:border-violet-600 group-hover:bg-white/80 dark:group-hover:bg-slate-800/80 text-left">
+            <div class="tilt-inner">
+              <div class="inline-block px-2 py-1 mb-3 text-xs font-bold text-violet-600 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 rounded">WEEK 01</div>
+              <h3 class="text-xl md:text-2xl font-serif font-bold text-slate-800 dark:text-white mb-2">Low-fi prototypes</h3>
+              <p class="text-slate-600 dark:text-slate-400">✏️ Eerste low-fi prototypes voor perronscherm, inkomhalbord en wagonscherm. Focus op meertaligheid en basisstructuur.</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Week 2 -->
+      <div class="group relative mb-12 md:flex md:flex-row-reverse md:items-center md:justify-between reveal-on-scroll opacity-0 translate-y-8 transition-all duration-700 delay-100">
+        <div class="absolute left-[-5px] md:left-1/2 w-3 h-3 bg-white dark:bg-slate-900 rounded-full border-2 border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)] z-10 -ml-1.5"></div>
+        <div class="md:w-5/12 md:pr-12 md:text-left w-full pl-6">
+          <a href="week2.html" class="tilt-card block p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(124,58,237,0.3)] transition-all duration-300 hover:border-violet-400 dark:hover:border-violet-600 group-hover:bg-white/80 dark:group-hover:bg-slate-800/80 text-left">
+            <div class="tilt-inner">
+              <div class="inline-block px-2 py-1 mb-3 text-xs font-bold text-violet-600 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 rounded">WEEK 02</div>
+              <h3 class="text-xl md:text-2xl font-serif font-bold text-slate-800 dark:text-white mb-2">Typografie, kleur en ruimte</h3>
+              <p class="text-slate-600 dark:text-slate-400">🎨 Typografie, kleur en witruimte getest. Definitieve keuze voor Roboto Slab en duidelijke visuele hiërarchie.</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Week 3 -->
+      <div class="group relative mb-12 md:flex md:items-center md:justify-between reveal-on-scroll opacity-0 translate-y-8 transition-all duration-700 delay-200">
+        <div class="absolute left-[-5px] md:left-1/2 w-3 h-3 bg-white dark:bg-slate-900 rounded-full border-2 border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)] z-10 -ml-1.5"></div>
+        <div class="md:w-5/12 md:pl-12 w-full pl-6 md:pr-0">
+          <a href="week3.html" class="tilt-card block p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(124,58,237,0.3)] transition-all duration-300 hover:border-violet-400 dark:hover:border-violet-600 group-hover:bg-white/80 dark:group-hover:bg-slate-800/80 text-left">
+            <div class="tilt-inner">
+              <div class="inline-block px-2 py-1 mb-3 text-xs font-bold text-violet-600 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 rounded">WEEK 03</div>
+              <h3 class="text-xl md:text-2xl font-serif font-bold text-slate-800 dark:text-white mb-2">HTML en CSS structuur</h3>
+              <p class="text-slate-600 dark:text-slate-400">💻 HTML-structuur opgezet, navigatie gemaakt en basislayout gebouwd.</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Week 4 -->
+      <div class="group relative mb-12 md:flex md:flex-row-reverse md:items-center md:justify-between reveal-on-scroll opacity-0 translate-y-8 transition-all duration-700 delay-300">
+        <div class="absolute left-[-5px] md:left-1/2 w-3 h-3 bg-white dark:bg-slate-900 rounded-full border-2 border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)] z-10 -ml-1.5"></div>
+        <div class="md:w-5/12 md:pr-12 md:text-left w-full pl-6">
+          <a href="week4.html" class="tilt-card block p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(124,58,237,0.3)] transition-all duration-300 hover:border-violet-400 dark:hover:border-violet-600 group-hover:bg-white/80 dark:group-hover:bg-slate-800/80 text-left">
+            <div class="tilt-inner">
+              <div class="inline-block px-2 py-1 mb-3 text-xs font-bold text-violet-600 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 rounded">WEEK 04</div>
+              <h3 class="text-xl md:text-2xl font-serif font-bold text-slate-800 dark:text-white mb-2">Mid-fi prototypes (Figma)</h3>
+              <p class="text-slate-600 dark:text-slate-400">✏️ Vertaling naar mid-fi ontwerpen in Figma, inclusief layoutcontrole en herwerking van zones.</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Week 5 -->
+      <div class="group relative mb-12 md:flex md:items-center md:justify-between reveal-on-scroll opacity-0 translate-y-8 transition-all duration-700 delay-100">
+        <div class="absolute left-[-5px] md:left-1/2 w-3 h-3 bg-white dark:bg-slate-900 rounded-full border-2 border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)] z-10 -ml-1.5"></div>
+        <div class="md:w-5/12 md:pl-12 w-full pl-6 md:pr-0">
+          <a href="week5.html" class="tilt-card block p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(124,58,237,0.3)] transition-all duration-300 hover:border-violet-400 dark:hover:border-violet-600 group-hover:bg-white/80 dark:group-hover:bg-slate-800/80 text-left">
+            <div class="tilt-inner">
+              <div class="inline-block px-2 py-1 mb-3 text-xs font-bold text-violet-600 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 rounded">WEEK 05</div>
+              <h3 class="text-xl md:text-2xl font-serif font-bold text-slate-800 dark:text-white mb-2">Ontwerp van de drie treinschermen</h3>
+              <p class="text-slate-600 dark:text-slate-400">🎨 Drie volledige Figma-schermen ontworpen: perron, inkomhal en wagon. Sterke hiërarchie, afstandsleesbaarheid en uniforme stijl uitgewerkt.</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Week 6 -->
+      <div class="group relative mb-12 md:flex md:flex-row-reverse md:items-center md:justify-between reveal-on-scroll opacity-0 translate-y-8 transition-all duration-700 delay-100">
+        <div class="absolute left-[-5px] md:left-1/2 w-3 h-3 bg-white dark:bg-slate-900 rounded-full border-2 border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)] z-10 -ml-1.5"></div>
+        <div class="md:w-5/12 md:pr-12 md:text-left w-full pl-6">
+          <a href="week6.html" class="tilt-card block p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(124,58,237,0.3)] transition-all duration-300 hover:border-violet-400 dark:hover:border-violet-600 group-hover:bg-white/80 dark:group-hover:bg-slate-800/80 text-left">
+            <div class="tilt-inner">
+              <div class="inline-block px-2 py-1 mb-3 text-xs font-bold text-violet-600 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 rounded">WEEK 06</div>
+              <h3 class="text-xl md:text-2xl font-serif font-bold text-slate-800 dark:text-white mb-2">Start ontwikkeling trein-app</h3>
+              <p class="text-slate-600 dark:text-slate-400">💻 Start met het bouwen van de mobiele app. Basis-HTML voor hoofdscherm, treindetails en wagonscherm. App werkt nog statisch maar structuur staat vast.</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Week 7 -->
+      <div class="group relative mb-12 md:flex md:items-center md:justify-between reveal-on-scroll opacity-0 translate-y-8 transition-all duration-700 delay-100">
+        <div class="absolute left-[-5px] md:left-1/2 w-3 h-3 bg-white dark:bg-slate-900 rounded-full border-2 border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)] z-10 -ml-1.5"></div>
+        <div class="md:w-5/12 md:pl-12 w-full pl-6 md:pr-0">
+          <a href="week7.html" class="tilt-card block p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(124,58,237,0.3)] transition-all duration-300 hover:border-violet-400 dark:hover:border-violet-600 group-hover:bg-white/80 dark:group-hover:bg-slate-800/80 text-left">
+            <div class="tilt-inner">
+              <div class="inline-block px-2 py-1 mb-3 text-xs font-bold text-violet-600 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 rounded">WEEK 07</div>
+              <h3 class="text-xl md:text-2xl font-serif font-bold text-slate-800 dark:text-white mb-2">Integratie van de Figma-schermen</h3>
+              <p class="text-slate-600 dark:text-slate-400">💻 Figma-ontwerpen nauwkeurig vertaald naar de app. Kleuren, fonts en layout-grid geïmplementeerd. UI blijft leesbaar op kleine schermen.</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Week 8 -->
+      <div class="group relative mb-12 md:flex md:flex-row-reverse md:items-center md:justify-between reveal-on-scroll opacity-0 translate-y-8 transition-all duration-700 delay-100">
+        <div class="absolute left-[-5px] md:left-1/2 w-3 h-3 bg-white dark:bg-slate-900 rounded-full border-2 border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)] z-10 -ml-1.5"></div>
+        <div class="md:w-5/12 md:pr-12 md:text-left w-full pl-6">
+          <a href="week8.html" class="tilt-card block p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(124,58,237,0.3)] transition-all duration-300 hover:border-violet-400 dark:hover:border-violet-600 group-hover:bg-white/80 dark:group-hover:bg-slate-800/80 text-left">
+            <div class="tilt-inner">
+              <div class="inline-block px-2 py-1 mb-3 text-xs font-bold text-violet-600 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 rounded">WEEK 08</div>
+              <h3 class="text-xl md:text-2xl font-serif font-bold text-slate-800 dark:text-white mb-2">Interactie en navigatie toevoegen</h3>
+              <p class="text-slate-600 dark:text-slate-400">✨ Interactie toegevoegd: navigatieknoppen, hover-effecten, vloeiende overgangen en mobielvriendelijke klikzones.</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Week 9 -->
+      <div class="group relative mb-12 md:flex md:items-center md:justify-between reveal-on-scroll opacity-0 translate-y-8 transition-all duration-700 delay-100">
+        <div class="absolute left-[-5px] md:left-1/2 w-3 h-3 bg-white dark:bg-slate-900 rounded-full border-2 border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)] z-10 -ml-1.5"></div>
+        <div class="md:w-5/12 md:pl-12 w-full pl-6 md:pr-0">
+          <a href="week9.html" class="tilt-card block p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(124,58,237,0.3)] transition-all duration-300 hover:border-violet-400 dark:hover:border-violet-600 group-hover:bg-white/80 dark:group-hover:bg-slate-800/80 text-left">
+            <div class="tilt-inner">
+              <div class="inline-block px-2 py-1 mb-3 text-xs font-bold text-violet-600 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 rounded">WEEK 09</div>
+              <h3 class="text-xl md:text-2xl font-serif font-bold text-slate-800 dark:text-white mb-2">Uitwerken wagon-informatie</h3>
+              <p class="text-slate-600 dark:text-slate-400">🚂 Wagondetails uitgewerkt: zitplaatszones, bezettingsindicatoren, iconen, responsive wagonraster. App wordt steeds completer.</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Week 10 -->
+      <div class="group relative mb-12 md:flex md:flex-row-reverse md:items-center md:justify-between reveal-on-scroll opacity-0 translate-y-8 transition-all duration-700 delay-100">
+        <div class="absolute left-[-5px] md:left-1/2 w-3 h-3 bg-white dark:bg-slate-900 rounded-full border-2 border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)] z-10 -ml-1.5"></div>
+        <div class="md:w-5/12 md:pr-12 md:text-left w-full pl-6">
+          <a href="week10.html" class="tilt-card block p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(124,58,237,0.3)] transition-all duration-300 hover:border-violet-400 dark:hover:border-violet-600 group-hover:bg-white/80 dark:group-hover:bg-slate-800/80 text-left">
+            <div class="tilt-inner">
+              <div class="inline-block px-2 py-1 mb-3 text-xs font-bold text-violet-600 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 rounded">WEEK 10</div>
+              <h3 class="text-xl md:text-2xl font-serif font-bold text-slate-800 dark:text-white mb-2">Finalisatie & voortgang project</h3>
+              <p class="text-slate-600 dark:text-slate-400">🏁 Afronding: marges finetunen, iconen toevoegen, documentatie aanvullen en app voorbereiden voor presentatie.</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Week 11 (UPDATED CONTENT) -->
+      <div class="group relative mb-12 md:flex md:items-center md:justify-between reveal-on-scroll opacity-0 translate-y-8 transition-all duration-700 delay-100">
+        <div class="absolute left-[-5px] md:left-1/2 w-3 h-3 bg-white dark:bg-slate-900 rounded-full border-2 border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)] z-10 -ml-1.5"></div>
+        <div class="md:w-5/12 md:pl-12 w-full pl-6 md:pr-0">
+          <a href="week11.html" class="tilt-card block p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(124,58,237,0.3)] transition-all duration-300 hover:border-violet-400 dark:hover:border-violet-600 group-hover:bg-white/80 dark:group-hover:bg-slate-800/80 text-left">
+            <div class="tilt-inner">
+              <div class="inline-block px-2 py-1 mb-3 text-xs font-bold text-violet-600 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 rounded">WEEK 11</div>
+              <h3 class="text-xl md:text-2xl font-serif font-bold text-slate-800 dark:text-white mb-4">Bouw documentatie website</h3>
+              
+              <p class="text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
+                In deze week lag de volledige focus op het maken van de website voor mijn documentatie. Ik heb de structuur opgezet, de navigatie bepaald en alle content verzameld in een modern, responsief design.
+              </p>
+              
+              <div class="space-y-2 text-sm text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-white/10 pt-4">
+                <div class="flex items-center gap-2">
+                  <span class="text-violet-500">●</span>
+                  <span>Overzichtspagina met timeline layout</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-violet-500">●</span>
+                  <span>Invoegen van alle week content</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-violet-500">●</span>
+                  <span>Finetunen van animaties en styling</span>
+                </div>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Week 12 (UPDATED CONTENT) -->
+      <div class="group relative mb-12 md:flex md:flex-row-reverse md:items-center md:justify-between reveal-on-scroll opacity-0 translate-y-8 transition-all duration-700 delay-100" id="final-week-card">
+        <div class="absolute left-[-5px] md:left-1/2 w-3 h-3 bg-white dark:bg-slate-900 rounded-full border-2 border-fuchsia-500 shadow-[0_0_15px_rgba(217,70,239,0.6)] z-10 -ml-1.5 animate-pulse"></div>
+        <div class="md:w-5/12 md:pr-12 md:text-left w-full pl-6">
+          <a href="week12.html" class="tilt-card block p-6 md:p-8 rounded-3xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-2 border-fuchsia-200 dark:border-fuchsia-900/50 shadow-[0_0_30px_rgba(217,70,239,0.2)] hover:shadow-[0_20px_40px_-15px_rgba(217,70,239,0.4)] transition-all duration-300 hover:border-fuchsia-400 dark:hover:border-fuchsia-600 text-left">
+            <div class="tilt-inner">
+              <div class="inline-block px-2 py-1 mb-3 text-xs font-bold text-fuchsia-600 dark:text-fuchsia-300 bg-fuchsia-100 dark:bg-fuchsia-900/30 rounded">WEEK 12</div>
+              <h3 class="text-xl md:text-2xl font-serif font-bold text-slate-800 dark:text-white mb-4">Finalisatie & Afronding</h3>
+              
+              <!-- Reflection Quote Block -->
+              <div class="relative p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border-l-4 border-fuchsia-500 italic mb-4">
+                <p class="text-slate-600 dark:text-slate-300 text-sm">
+                  "Deze week heb ik alles netjes afgewerkt. De laatste details zijn aangepast, alle functionaliteiten gecheckt en het project is nu helemaal klaar voor oplevering."
+                </p>
+              </div>
+
+              <div class="flex items-center justify-between mt-6">
+                <span class="text-sm font-mono text-slate-400">STATUS: VOLTOOID</span>
+                <span class="text-2xl">🎓</span>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+    </div> <!-- End Timeline -->
+
+    <!-- Call to Action -->
+    <div class="mt-24 text-center">
+      <a href="week1.html" class="group relative inline-flex items-center justify-center px-8 py-5 text-lg font-bold text-white transition-all duration-200 bg-gradient-to-br from-violet-600 to-fuchsia-600 font-serif rounded-2xl hover:from-violet-700 hover:to-fuchsia-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-600 shadow-[0_20px_50px_rgba(124,58,237,0.3)] hover:shadow-[0_30px_60px_rgba(124,58,237,0.4)] hover:-translate-y-1">
+        <span class="mr-3 text-2xl group-hover:rotate-12 transition-transform">🚀</span>
+        <span class="flex flex-col items-start">
+          <span class="leading-none">Begin hier met de reis</span>
+          <span class="text-xs font-sans font-normal opacity-80 mt-1 uppercase tracking-widest">Start bij Week 1</span>
+        </span>
+      </a>
+    </div>
+
+  </div> <!-- End Main Container -->
+
+  <!-- Scroll To Top Button -->
+  <button id="scrollTopBtn" class="fixed bottom-8 right-8 p-4 rounded-full bg-white dark:bg-white/10 text-slate-800 dark:text-white shadow-2xl border border-slate-100 dark:border-white/10 translate-y-24 opacity-0 transition-all duration-500 hover:bg-violet-600 hover:text-white hover:scale-110 z-40 focus:outline-none" aria-label="Scroll naar boven">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+  </button>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none"></div>
+
+  <!-- Scripts -->
+  <script>
+    /**
+     * 1. DYNAMIC BACKGROUND HUE ROTATION (NEXT LEVEL)
+     */
+    window.addEventListener('scroll', () => {
+      const scrollY = window.scrollY;
+      // Shift color by 45 degrees per 1000px scroll
+      const hue = Math.floor(scrollY / 20); 
+      document.body.style.setProperty('--scroll-hue', `${hue}deg`);
+    });
+
+    /**
+     * 2. SPOTLIGHT EFFECT
+     */
+    document.addEventListener('mousemove', (e) => {
+      const x = e.clientX;
+      const y = e.clientY;
+      document.body.style.setProperty('--mouse-x', `${x}px`);
+      document.body.style.setProperty('--mouse-y', `${y}px`);
+    });
+
+    /**
+     * 3. 3D TILT EFFECT
+     */
+    const cards = document.querySelectorAll('.tilt-card');
+    cards.forEach(card => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const rotateX = ((y - centerY) / centerY) * -5; 
+        const rotateY = ((x - centerX) / centerX) * 5;
+        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.01, 1.01, 1.01)`;
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+      });
+    });
+
+    /**
+     * 4. CONFETTI ENGINE (Next Level Celebration)
+     */
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    let particles = [];
+    let confettiFired = false;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function createParticle() {
+      const colors = ['#8b5cf6', '#ec4899', '#3b82f6', '#f59e0b', '#10b981'];
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        size: Math.random() * 10 + 5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        speedY: Math.random() * 3 + 2,
+        speedX: Math.random() * 2 - 1,
+        rotation: Math.random() * 360,
+        rotationSpeed: Math.random() * 10 - 5
+      };
+    }
+
+    function fireConfetti() {
+      if (confettiFired) return;
+      confettiFired = true;
+      for (let i = 0; i < 150; i++) {
+        particles.push(createParticle());
+      }
+      animateConfetti();
+    }
+
+    function animateConfetti() {
+      if (particles.length === 0) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      particles.forEach((p, index) => {
+        p.y += p.speedY;
+        p.x += p.speedX;
+        p.rotation += p.rotationSpeed;
+        
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation * Math.PI / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore();
+        
+        if (p.y > canvas.height) particles.splice(index, 1);
+      });
+      
+      requestAnimationFrame(animateConfetti);
+    }
+
+    /**
+     * 5. OBSERVER FOR CONFETTI TRIGGER
+     */
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          if (entry.target.id === 'final-week-card') {
+            fireConfetti();
+          }
+        }
+      });
+    }, { threshold: 0.5 });
+    
+    observer.observe(document.getElementById('final-week-card'));
+
+    /**
+     * 6. THEME MANAGER
+     */
+    const themeToggle = document.getElementById('themeToggle');
+    const sunIcon = document.getElementById('sunIcon');
+    const moonIcon = document.getElementById('moonIcon');
+    const html = document.documentElement;
+
+    function updateIcons() {
+      const isDark = html.classList.contains('dark');
+      sunIcon.classList.toggle('hidden', !isDark);
+      moonIcon.classList.toggle('hidden', isDark);
+    }
+
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      html.classList.add('dark');
+    } else {
+      html.classList.remove('dark');
+    }
+    updateIcons();
+
+    themeToggle.addEventListener('click', () => {
+      html.classList.toggle('dark');
+      localStorage.theme = html.classList.contains('dark') ? 'dark' : 'light';
+      updateIcons();
+      showToast(html.classList.contains('dark') ? '🌙 Donkere modus ingeschakeld' : '☀️ Lichtere modus ingeschakeld');
+    });
+
+    /**
+     * 7. SCROLL PROGRESS BAR
+     */
+    const progressBar = document.getElementById('progressBar');
+    window.addEventListener('scroll', () => {
+      const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrolled = (scrollTop / scrollHeight) * 100;
+      progressBar.style.width = scrolled + "%";
+    });
+
+    /**
+     * 8. SCROLL REVEAL
+     */
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.remove('opacity-0', 'translate-y-8');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    
+    document.querySelectorAll('.reveal-on-scroll').forEach(el => revealObserver.observe(el));
+
+    /**
+     * 9. SCRAMBLE TEXT EFFECT
+     */
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
+    const titleElement = document.querySelector(".scramble-text");
+    let interval = null;
+
+    function runScramble() {
+      let iteration = 0;
+      clearInterval(interval);
+      interval = setInterval(() => {
+        titleElement.innerText = titleElement.innerText
+          .split("")
+          .map((letter, index) => {
+            if (index < iteration) return titleElement.dataset.value[index];
+            return letters[Math.floor(Math.random() * 26)];
+          })
+          .join("");
+        if (iteration >= titleElement.dataset.value.length) clearInterval(interval);
+        iteration += 1 / 3;
+      }, 30);
+    }
+
+    window.onload = () => setTimeout(runScramble, 500);
+    titleElement.onmouseover = runScramble;
+
+    /**
+     * 10. SCROLL TO TOP
+     */
+    const scrollBtn = document.getElementById('scrollTopBtn');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 500) {
+        scrollBtn.classList.remove('translate-y-24', 'opacity-0');
+      } else {
+        scrollBtn.classList.add('translate-y-24', 'opacity-0');
+      }
+    });
+    scrollBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+    /**
+     * 11. TOAST NOTIFICATION
+     */
+    function showToast(message) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 transform translate-y-10 opacity-0 transition-all duration-300 font-medium text-sm backdrop-blur-md bg-opacity-90';
+      toast.innerHTML = message;
+      container.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.remove('translate-y-10', 'opacity-0'));
+      setTimeout(() => {
+        toast.classList.add('translate-y-10', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  </script>
+
+  <a
+  href="Lost_in_Tra_inslation_ontwerpdocumentatie_extensief.pdf"
+  download
+  class="inline-flex items-center gap-2 px-6 py-3 mt-8 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition"
+>
+  📄 Download Uitgebreide Ontwerpdocumentatie (PDF)
+</a>
+
+</body>
+
+<footer class="mt-20 py-8 text-center bg-gradient-to-r from-indigo-50 to-purple-50 border-t">
+  <p class="text-sm text-gray-600">
+    💻 Bekijk de laatst gepubliceerde versie van mijn code op
+    <a
+      href="https://github.com/ArwenVanDeWater/finale-versie"
+      target="_blank"
+      class="ml-1 text-indigo-600 font-semibold hover:text-purple-600 transition-colors duration-200"
+    >
+      GitHub →
+    </a>
+  </p>
+</footer>
+
+</html>

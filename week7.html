@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="nl" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Week 7 Integratie van de Figma-schermen">
+  <title>Week 7 – Integratie van de Figma-schermen</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Roboto+Slab:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Tailwind Configuratie -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Roboto Slab', 'serif'],
+          },
+          colors: {
+            brand: {
+              // WARM ROZE / PAARS
+              50: '#fff1f2',
+              100: '#ffe4e6',
+              400: '#f472b6',
+              500: '#ec4899',
+              600: '#db2777',
+              700: '#be185d',
+              900: '#831843',
+            },
+            dark: {
+              bg: '#0f172a',
+              card: '#1e293b',
+            }
+          },
+          animation: {
+            'blob': 'blob 10s infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'fade-in-up': 'fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          },
+          keyframes: {
+            blob: {
+              '0%': { transform: 'translate(0px, 0px) scale(1)' },
+              '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+              '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+              '100%': { transform: 'translate(0px, 0px) scale(1)' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-20px)' },
+            },
+            fadeInUp: {
+              '0%': { opacity: 0, transform: 'translateY(40px)' },
+              '100%': { opacity: 1, transform: 'translateY(0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    /* Custom logic for spotlight via CSS Variables */
+    body {
+      --mouse-x: 50%;
+      --mouse-y: 50%;
+      --scroll-hue: 0deg;
+    }
+    
+    .spotlight-bg {
+      background: 
+        radial-gradient(
+          800px circle at var(--mouse-x) var(--mouse-y),
+          rgba(236, 72, 153, 0.15), /* Warme Roze glow */
+          transparent 40%
+        );
+    }
+
+    /* Dynamic Background Color Shift on Scroll */
+    .dynamic-orbs {
+      filter: hue-rotate(var(--scroll-hue));
+      transition: filter 0.1s linear;
+    }
+    
+    /* 3D Tilt Card Setup */
+    .tilt-card {
+      transform-style: preserve-3d;
+      transition: transform 0.1s ease-out;
+    }
+    
+    .tilt-inner {
+      transform: translateZ(20px);
+    }
+
+    /* Hide scrollbar for nav but keep functionality */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* CUSTOM LIGHTBOX STYLES */
+    .lightbox {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(15, 23, 42, 0.95); /* Dark slate */
+      backdrop-filter: blur(20px);
+      z-index: 9999;
+      display: none; justify-content: center; align-items: center;
+      opacity: 0; transition: opacity 0.3s ease;
+    }
+    .lightbox.active { display: flex; opacity: 1; }
+
+    .lightbox-content {
+      position: relative;
+      width: 95%;
+      max-width: 1000px; 
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lightbox-img {
+      max-width: 100%;
+      max-height: 65vh; 
+      width: auto;
+      object-fit: contain;
+      border: 4px solid white;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.6);
+      border-radius: 4px;
+      z-index: 1;
+    }
+
+    .lightbox-caption {
+      margin-top: 2rem;
+      width: 100%;
+      max-height: 15vh;
+      overflow-y: auto;
+      color: #ffffff;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .lightbox-caption h3 {
+      font-family: 'Roboto Slab', serif; font-size: 1.8rem; margin-bottom: 0.5rem;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    }
+
+    .lightbox-caption p {
+      font-size: 1.1rem; opacity: 0.95; color: #e2e8f0; max-width: 600px;
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 50px; height: 50px;
+      background: white;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #1a1a2e; cursor: pointer;
+      font-size: 2rem; font-weight: bold;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+    .lightbox-close:hover { transform: scale(1.1); background: #db2777; color: white; }
+
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-dark-bg dark:text-slate-100 transition-colors duration-500 overflow-x-hidden relative selection:bg-pink-500 selection:text-white">
+
+  <!-- Dynamic Spotlight Background Overlay -->
+  <div id="spotlight" class="fixed inset-0 pointer-events-none z-[-1] transition-opacity duration-500 opacity-0 md:opacity-100 spotlight-bg"></div>
+
+  <!-- Ambient Background Effects (Glowing Orbs) - ROZE KLEUREN -->
+  <div class="fixed inset-0 pointer-events-none z-[-2] overflow-hidden dynamic-orbs">
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob dark:bg-pink-900 dark:opacity-20"></div>
+    <div class="absolute top-0 right-1/4 w-96 h-96 bg-rose-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000 dark:bg-rose-900 dark:opacity-20"></div>
+    <div class="absolute -bottom-32 left-1/3 w-96 h-96 bg-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000 dark:bg-pink-900 dark:opacity-20"></div>
+  </div>
+
+  <!-- Scroll Progress Bar -->
+  <div class="fixed top-0 left-0 h-1 bg-gradient-to-r from-pink-500 to-rose-600 z-[100] transition-all duration-100 ease-out shadow-[0_0_10px_rgba(236,72,153,0.5)]" id="progressBar" style="width: 0%"></div>
+
+  <!-- Navigation / Header -->
+  <header class="fixed top-0 w-full z-50 transition-all duration-300 backdrop-blur-md bg-white/70 dark:bg-dark-bg/70 border-b border-slate-200 dark:border-white/10" id="main-header">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Author Badge -->
+      <div class="flex items-center gap-3 px-4 py-2 rounded-full bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-sm hover:shadow-md transition-all duration-300 group cursor-default">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white group-hover:scale-110 transition-transform shadow-lg shadow-pink-500/20">
+          <span class="font-bold text-sm">Av</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-xs font-bold text-slate-600 dark:text-slate-200 leading-tight">Arwen Van De Water</span>
+          <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono tracking-wider">1GDM1</span>
+        </div>
+      </div>
+
+      <!-- Theme Toggle -->
+      <button id="themeToggle" class="w-12 h-12 rounded-full flex items-center justify-center bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-pink-500 text-slate-600 dark:text-yellow-400 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-tr from-pink-500/20 to-transparent opacity-0 hover:opacity-100 transition-opacity"></div>
+        <svg id="sunIcon" class="w-6 h-6 hidden relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12 a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+        <svg id="moonIcon" class="w-6 h-6 block relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <div class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    
+    <!-- Hero Section -->
+    <div class="text-center max-w-4xl mx-auto mb-16 relative perspective-1000">
+      <div class="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-pink-500/20 rounded-full blur-[80px] -z-10 animate-pulse-slow"></div>
+      
+      <h1 class="text-5xl md:text-7xl lg:text-8xl font-serif font-bold mb-6 tracking-tight text-slate-900 dark:text-white scramble-text cursor-default" data-value="Week 7 – Integratie van de Figma-schermen">
+        Week 7 – Integratie van de Figma-schermen
+      </h1>
+
+      <!-- Week Navigation (Active: Week 7) -->
+      <nav class="mt-12 w-full">
+        <div class="flex flex-wrap justify-center gap-1 md:gap-2">
+          <a href="index.html" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-white dark:bg-white/5 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 transition-all">Home</a>
+          <a href="week1.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-300 transition-all">Wk 1</a>
+          <a href="week2.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-300 transition-all">Wk 2</a>
+          <a href="week3.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-300 transition-all">Wk 3</a>
+          <a href="week4.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-300 transition-all">Wk 4</a>
+          <a href="week5.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-300 transition-all">Wk 5</a>
+          <a href="week6.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-300 transition-all">Wk 6</a>
+          <a href="week7.html" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-pink-600 text-white shadow-lg shadow-pink-500/30 transition-all hover:scale-105 active:scale-95">Week 7</a>
+          <a href="week8.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-300 transition-all">Wk 8</a>
+          <a href="week9.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-300 transition-all">Wk 9</a>
+          <a href="week10.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-300 transition-all">Wk 10</a>
+          <a href="week11.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-300 transition-all">Wk 11</a>
+          <a href="week12.html" class="px-3 py-1.5 rounded-lg text-[10px] md:text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 hover:text-pink-600 dark:hover:text-pink-400 hover:border-pink-300 transition-all">Wk 12</a>
+        </div>
+      </nav>
+    </div>
+
+    <!-- INTRO GRID -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+      
+      <!-- Card 1: Visuele Integratie -->
+      <div class="tilt-card group relative p-6 rounded-3xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(244,63,94,0.3)] transition-all duration-300">
+        <div class="tilt-inner">
+          <div class="w-12 h-12 mb-4 rounded-xl bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-2xl">🎯</div>
+          <h3 class="text-xl font-serif font-bold text-slate-800 dark:text-white mb-2">Visuele Integratie</h3>
+          <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">Deze week lag de volledige focus op het nauwkeurig omzetten van de Figma-ontwerpen naar code. De uitdaging was om de complexe hiërarchie van het perronscherm te behouden en dit ook op een klein mobiel scherm goed te laten renderen.</p>
+        </div>
+      </div>
+
+      <!-- Card 2: Styling & Componenten -->
+      <div class="tilt-card group relative p-6 rounded-3xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(244,63,94,0.3)] transition-all duration-300">
+        <div class="tilt-inner">
+          <div class="w-12 h-12 mb-4 rounded-xl bg-fuchsia-100 dark:bg-fuchsia-900/30 flex items-center justify-center text-2xl">🎨</div>
+          <h3 class="text-xl font-serif font-bold text-slate-800 dark:text-white mb-2">Styling & Componenten</h3>
+          <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">Ik heb de typografie en het kleurenpalet exact overgenomen van de Figma-bestanden. Daarnaast heb ik een flexibel CSS Grid-systeem gebouwd dat de lay-out automatisch aanpast aan verschillende schermgroottes.</p>
+        </div>
+      </div>
+
+      <!-- Card 3: Implementatie -->
+      <div class="tilt-card group relative p-6 rounded-3xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(244,63,94,0.3)] transition-all duration-300">
+        <div class="tilt-inner">
+          <div class="w-12 h-12 mb-4 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-2xl">💻</div>
+          <h3 class="text-xl font-serif font-bold text-slate-800 dark:text-white mb-2">Technische Implementatie</h3>
+          <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">De wagonschermen zijn vertaald naar dynamische rijen in de code. Dit betekent dat elk wagonblok automatisch op de juiste plek wordt weergegeven, afhankelijk van de resolutie van het toestel.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Section Title -->
+    <div class="mb-12 flex items-center gap-4">
+      <span class="flex-1 h-px bg-gradient-to-r from-transparent via-rose-300 to-transparent dark:via-rose-700"></span>
+      <h2 class="text-2xl md:text-3xl font-serif font-bold text-slate-800 dark:text-white whitespace-nowrap">Figma Integratie Screenshots</h2>
+      <span class="flex-1 h-px bg-gradient-to-r from-transparent via-rose-300 to-transparent dark:via-rose-700"></span>
+    </div>
+
+    <!-- Screens Grid (4 items) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-24">
+      
+      <!-- Screen 1: Homepage -->
+      <div class="tilt-card group relative bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-3xl shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(244,63,94,0.3)] transition-all duration-300 cursor-pointer overflow-hidden" onclick="openLightbox('homepage.png', 'Startpagina (Homepage)', 'Dit is de centrale startpagina van de applicatie. Vanaf hier kan de gebruiker naar alle andere functies navigeren, zoals ticket kopen en stations bekijken. Het design is duidelijk en nodigt uit tot actie.')">
+        <div class="tilt-inner p-6 h-full flex flex-col">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="p-2 rounded-lg bg-pink-100 dark:bg-pink-900/30 text-xl">🏠</span>
+            <h3 class="text-xl font-serif font-bold text-slate-800 dark:text-white">Startpagina</h3>
+          </div>
+          <p class="text-slate-600 dark:text-slate-400 text-sm mb-6 flex-grow">Navigatie naar alle functies.</p>
+          <div class="relative w-full h-48 bg-slate-50 dark:bg-slate-900/50 rounded-xl overflow-hidden border border-slate-100 dark:border-white/5 group-hover:border-pink-300 transition-colors">
+            <!-- Bestandsnaam: homepage.png -->
+            <img src="homepage.png" alt="Startpagina" class="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105">
+            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <span class="text-white font-semibold text-sm bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">🔍 Klik om te vergroten</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screen 2: Departure -->
+      <div class="tilt-card group relative bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-3xl shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(244,63,94,0.3)] transition-all duration-300 cursor-pointer overflow-hidden" onclick="openLightbox('departure.png', 'Vertrekstation (Departure)', 'Hier kan de gebruiker het station kiezen waar de trein vertrekt. Ik heb dit scherm zo ontworpen dat alle vertrekpunten overzichtelijk zijn, met duidelijke zoekfuncties en populaire bestemmingen bovenaan.')">
+        <div class="tilt-inner p-6 h-full flex flex-col">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="p-2 rounded-lg bg-fuchsia-100 dark:bg-fuchsia-900/30 text-xl">🚉</span>
+            <h3 class="text-xl font-serif font-bold text-slate-800 dark:text-white">Vertrekstation</h3>
+          </div>
+          <p class="text-slate-600 dark:text-slate-400 text-sm mb-6 flex-grow">Kies het station waar je vertrekt.</p>
+          <div class="relative w-full h-48 bg-slate-50 dark:bg-slate-900/50 rounded-xl overflow-hidden border border-slate-100 dark:border-white/5 group-hover:border-pink-300 transition-colors">
+            <!-- Bestandsnaam: departure.png -->
+            <img src="departure.png" alt="Vertrekstation" class="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105">
+            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <span class="text-white font-semibold text-sm bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">🔍 Klik om te vergroten</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screen 3: Destination (NIEUW) -->
+      <div class="tilt-card group relative bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-3xl shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(244,63,94,0.3)] transition-all duration-300 cursor-pointer overflow-hidden" onclick="openLightbox('destination.png', 'Doelstation (Destination)', 'Op dit scherm kies je de eindbestemming. Ik heb een lijstweergave toegevoegd met zoekopties. De interface past zich aan op basis van het gekozen vertrekstation, zodat alleen logische routes worden getoond.')">
+        <div class="tilt-inner p-6 h-full flex flex-col">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="p-2 rounded-lg bg-rose-100 dark:bg-rose-900/30 text-xl">🏁</span>
+            <h3 class="text-xl font-serif font-bold text-slate-800 dark:text-white">Doelstation</h3>
+          </div>
+          <p class="text-slate-600 dark:text-slate-400 text-sm mb-6 flex-grow">Kies waar de trein naartoe gaat.</p>
+          <div class="relative w-full h-48 bg-slate-50 dark:bg-slate-900/50 rounded-xl overflow-hidden border border-slate-100 dark:border-white/5 group-hover:border-pink-300 transition-colors">
+            <!-- Bestandsnaam: destination.png -->
+            <img src="destination.png" alt="Doelstation" class="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105">
+            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <span class="text-white font-semibold text-sm bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">🔍 Klik om te vergroten</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screen 4: SelectTicket -->
+      <div class="tilt-card group relative bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-3xl shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(244,63,94,0.3)] transition-all duration-300 cursor-pointer overflow-hidden" onclick="openLightbox('selectticket.png', 'Ticket Selectie (SelectTicket)', 'Dit is het scherm waar het hele ticket wordt samengesteld. Ik heb opties toegevoegd voor stoelkeuze, extra comfort en maaltijden. De UI geeft direct een overzicht van de totale prijs en reisduur.')">
+        <div class="tilt-inner p-6 h-full flex flex-col">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-xl">🎟️</span>
+            <h3 class="text-xl font-serif font-bold text-slate-800 dark:text-white">Ticket Kiezen</h3>
+          </div>
+          <p class="text-slate-600 dark:text-slate-400 text-sm mb-6 flex-grow">Kies wat jij wilt (opties).</p>
+          <div class="relative w-full h-48 bg-slate-50 dark:bg-slate-900/50 rounded-xl overflow-hidden border border-slate-100 dark:border-white/5 group-hover:border-pink-300 transition-colors">
+            <!-- Bestandsnaam: selectticket.png -->
+            <img src="selectticket.png" alt="Ticket Kiezen" class="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105">
+            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <span class="text-white font-semibold text-sm bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">🔍 Klik om te vergroten</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Call to Action -->
+    <div class="mt-24 text-center">
+      <a href="week8.html" class="group relative inline-flex items-center justify-center px-8 py-5 text-lg font-bold text-white transition-all duration-200 bg-gradient-to-br from-pink-500 to-rose-600 font-serif rounded-2xl hover:from-pink-600 hover:to-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-600 shadow-[0_20px_50px_rgba(244,63,94,0.3)] hover:shadow-[0_30px_60px_rgba(244,63,94,0.4)] hover:-translate-y-1">
+        <span class="mr-3 text-2xl group-hover:rotate-12 transition-transform">🚀</span>
+        <span class="flex flex-col items-start">
+          <span class="leading-none">Volgende stap</span>
+          <span class="text-xs font-sans font-normal opacity-80 mt-1 uppercase tracking-widest">Navigatie & Interactie</span>
+        </span>
+      </a>
+    </div>
+
+  </div>
+
+  <!-- LIGHTBOX OVERLAY -->
+  <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+      <div class="lightbox-close" onclick="closeLightbox(event)">×</div>
+      <img src="" alt="Full Screen Mockup" class="lightbox-img" id="lightbox-img">
+      <div class="lightbox-caption">
+        <h3 id="lightbox-title">Titel</h3>
+        <p id="lightbox-desc">Beschrijving</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll To Top Button -->
+  <button id="scrollTopBtn" class="fixed bottom-8 right-8 p-4 rounded-full bg-white dark:bg-white/10 text-slate-800 dark:text-white shadow-2xl border border-slate-100 dark:border-white/10 translate-y-24 opacity-0 transition-all duration-500 hover:bg-pink-600 hover:text-white hover:scale-110 z-40 focus:outline-none" aria-label="Scroll naar boven">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+  </button>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none"></div>
+
+  <!-- Scripts -->
+  <script>
+    /**
+     * 1. DYNAMIC BACKGROUND HUE ROTATION
+     */
+    window.addEventListener('scroll', () => {
+      const scrollY = window.scrollY;
+      const hue = Math.floor(scrollY / 20); 
+      document.body.style.setProperty('--scroll-hue', `${hue}deg`);
+    });
+
+    /**
+     * 2. SPOTLIGHT EFFECT
+     */
+    document.addEventListener('mousemove', (e) => {
+      const x = e.clientX;
+      const y = e.clientY;
+      document.body.style.setProperty('--mouse-x', `${x}px`);
+      document.body.style.setProperty('--mouse-y', `${y}px`);
+    });
+
+    /**
+     * 3. 3D TILT EFFECT
+     */
+    const cards = document.querySelectorAll('.tilt-card');
+    cards.forEach(card => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const rotateX = ((y - centerY) / centerY) * -5; 
+        const rotateY = ((x - centerX) / centerX) * 5;
+        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.01, 1.01, 1.01)`;
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+      });
+    });
+
+    /**
+     * 4. LIGHTBOX LOGIC
+     */
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxTitle = document.getElementById('lightbox-title');
+    const lightboxDesc = document.getElementById('lightbox-desc');
+
+    function openLightbox(src, title, description) {
+      lightboxImg.src = src;
+      lightboxTitle.innerText = title;
+      lightboxDesc.innerText = description;
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden'; // Stop scrolling
+    }
+
+    function closeLightbox(event) {
+      event.stopPropagation();
+      lightbox.classList.remove('active');
+      document.body.style.overflow = ''; // Start scrolling
+      setTimeout(() => { lightboxImg.src = ''; }, 300);
+    }
+
+    /**
+     * 5. THEME MANAGER
+     */
+    const themeToggle = document.getElementById('themeToggle');
+    const sunIcon = document.getElementById('sunIcon');
+    const moonIcon = document.getElementById('moonIcon');
+    const html = document.documentElement;
+
+    function updateIcons() {
+      const isDark = html.classList.contains('dark');
+      sunIcon.classList.toggle('hidden', !isDark);
+      moonIcon.classList.toggle('hidden', isDark);
+    }
+
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      html.classList.add('dark');
+    } else {
+      html.classList.remove('dark');
+    }
+    updateIcons();
+
+    themeToggle.addEventListener('click', () => {
+      html.classList.toggle('dark');
+      localStorage.theme = html.classList.contains('dark') ? 'dark' : 'light';
+      updateIcons();
+      showToast(html.classList.contains('dark') ? '🌙 Donkere modus ingeschakeld' : '☀️ Lichtere modus ingeschakeld');
+    });
+
+    /**
+     * 6. SCROLL PROGRESS BAR
+     */
+    const progressBar = document.getElementById('progressBar');
+    window.addEventListener('scroll', () => {
+      const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrolled = (scrollTop / scrollHeight) * 100;
+      progressBar.style.width = scrolled + "%";
+    });
+
+    /**
+     * 8. SCROLL TO TOP
+     */
+    const scrollBtn = document.getElementById('scrollTopBtn');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 500) {
+        scrollBtn.classList.remove('translate-y-24', 'opacity-0');
+      } else {
+        scrollBtn.classList.add('translate-y-24', 'opacity-0');
+      }
+    });
+    scrollBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+    /**
+     * 9. TOAST NOTIFICATION
+     */
+    function showToast(message) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 transform translate-y-10 opacity-0 transition-all duration-300 font-medium text-sm backdrop-blur-md bg-opacity-90';
+      toast.innerHTML = message;
+      container.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.remove('translate-y-10', 'opacity-0'));
+      setTimeout(() => {
+        toast.classList.add('translate-y-10', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  </script>
+</body>
+
+<footer class="mt-20 py-8 text-center bg-gradient-to-r from-indigo-50 to-purple-50 border-t">
+  <p class="text-sm text-gray-600">
+    💻 Bekijk de laatst gepubliceerde versie van mijn code op
+    <a
+      href="https://github.com/ArwenVanDeWater/finale-versie"
+      target="_blank"
+      class="ml-1 text-indigo-600 font-semibold hover:text-purple-600 transition-colors duration-200"
+    >
+      GitHub →
+    </a>
+  </p>
+</footer>
+
+</html>
